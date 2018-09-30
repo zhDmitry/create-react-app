@@ -6,7 +6,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 // @remove-on-eject-end
-'use strict';
 
 const path = require('path');
 const webpack = require('webpack');
@@ -15,11 +14,13 @@ const CaseSensitivePathsPlugin = require('case-sensitive-paths-webpack-plugin');
 const InterpolateHtmlPlugin = require('react-dev-utils/InterpolateHtmlPlugin');
 const WatchMissingNodeModulesPlugin = require('react-dev-utils/WatchMissingNodeModulesPlugin');
 const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
-const getCSSModuleLocalIdent = require('react-dev-utils/getCSSModuleLocalIdent');
-const getClientEnvironment = require('./env');
-const paths = require('./paths');
 const ManifestPlugin = require('webpack-manifest-plugin');
 const getCacheIdentifier = require('react-dev-utils/getCacheIdentifier');
+const getClientEnvironment = require('./env');
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
+  .BundleAnalyzerPlugin;
+
+const paths = require('./paths');
 
 // Webpack uses `publicPath` to determine where the app is being served from.
 // In development, we always serve from the root. This makes config easier.
@@ -34,8 +35,6 @@ const env = getClientEnvironment(publicUrl);
 // style files regexes
 const cssRegex = /\.css$/;
 const cssModuleRegex = /\.module\.css$/;
-const sassRegex = /\.(scss|sass)$/;
-const sassModuleRegex = /\.module\.(scss|sass)$/;
 
 // common function to get style loaders
 const getStyleLoaders = (cssOptions, preProcessor) => {
@@ -45,30 +44,7 @@ const getStyleLoaders = (cssOptions, preProcessor) => {
       loader: require.resolve('css-loader'),
       options: cssOptions,
     },
-    {
-      // Options for PostCSS as we reference these options twice
-      // Adds vendor prefixing based on your specified browser support in
-      // package.json
-      loader: require.resolve('postcss-loader'),
-      options: {
-        // Necessary for external CSS imports to work
-        // https://github.com/facebook/create-react-app/issues/2677
-        ident: 'postcss',
-        plugins: () => [
-          require('postcss-flexbugs-fixes'),
-          require('postcss-preset-env')({
-            autoprefixer: {
-              flexbox: 'no-2009',
-            },
-            stage: 3,
-          }),
-        ],
-      },
-    },
   ];
-  if (preProcessor) {
-    loaders.push(require.resolve(preProcessor));
-  }
   return loaders;
 };
 
@@ -142,7 +118,7 @@ module.exports = {
     // https://github.com/facebook/create-react-app/issues/290
     // `web` extension prefixes have been added for better support
     // for React Native Web.
-    extensions: ['.web.js', '.js', '.json', '.web.jsx', '.jsx'],
+    extensions: ['.web.js', '.js', '.json', '.web.jsx', '.jsx', '.ts', '.tsx'],
     alias: {
       // Support React Native Web
       // https://www.smashingmagazine.com/2016/08/a-glimpse-into-the-future-with-react-native-for-web/
@@ -216,48 +192,27 @@ module.exports = {
           // Process application JS with Babel.
           // The preset includes JSX, Flow, and some ESnext features.
           {
-            test: /\.(js|jsx)$/,
+            test: /\.(js|jsx|ts|tsx)$/,
             include: paths.appSrc,
-            loader: require.resolve('babel-loader'),
-            options: {
-              customize: require.resolve(
-                'babel-preset-react-app/webpack-overrides'
-              ),
-              // @remove-on-eject-begin
-              babelrc: false,
-              configFile: false,
-              presets: [require.resolve('babel-preset-react-app')],
-              // Make sure we have a unique cache identifier, erring on the
-              // side of caution.
-              // We remove this when the user ejects because the default
-              // is sane and uses Babel options. Instead of options, we use
-              // the react-scripts and babel-preset-react-app versions.
-              cacheIdentifier: getCacheIdentifier('development', [
-                'babel-plugin-named-asset-import',
-                'babel-preset-react-app',
-                'react-dev-utils',
-                'react-scripts',
-              ]),
-              // @remove-on-eject-end
-              plugins: [
-                [
-                  require.resolve('babel-plugin-named-asset-import'),
-                  {
-                    loaderMap: {
-                      svg: {
-                        ReactComponent: '@svgr/webpack?-prettier,-svgo![path]',
-                      },
-                    },
-                  },
-                ],
-              ],
-              // This is a feature of `babel-loader` for webpack (not Babel itself).
-              // It enables caching results in ./node_modules/.cache/babel-loader/
-              // directory for faster rebuilds.
-              cacheDirectory: true,
-              // Don't waste time on Gzipping the cache
-              cacheCompression: false,
-            },
+            use: [
+              // This loader parallelizes code compilation, it is optional but
+              // improves compile time on larger projects
+              {
+                loader: require.resolve('thread-loader'),
+                options: {
+                  poolTimeout: Infinity, // keep workers alive for more effective watch mode
+                  // Forwards the process args (such as --require) to the child
+                  // workers. Ensures that the worker operates in the same kind
+                  // of environment than the current one (important in case a
+                  // preloaded script modifies the env)
+                  workerNodeArgs: process.execArgv,
+                },
+              },
+              {
+                loader: require.resolve('babel-loader'),
+                options: require(paths.babelrc),
+              },
+            ],
           },
           // Process any JS outside of the app with Babel.
           // Unlike the application JS, we only compile the standard ES features.
@@ -306,44 +261,7 @@ module.exports = {
               importLoaders: 1,
             }),
           },
-          // Adds support for CSS Modules (https://github.com/css-modules/css-modules)
-          // using the extension .module.css
-          {
-            test: cssModuleRegex,
-            use: getStyleLoaders({
-              importLoaders: 1,
-              modules: true,
-              getLocalIdent: getCSSModuleLocalIdent,
-            }),
-          },
-          // Opt-in support for SASS (using .scss or .sass extensions).
-          // Chains the sass-loader with the css-loader and the style-loader
-          // to immediately apply all styles to the DOM.
-          // By default we support SASS Modules with the
-          // extensions .module.scss or .module.sass
-          {
-            test: sassRegex,
-            exclude: sassModuleRegex,
-            use: getStyleLoaders({ importLoaders: 2 }, 'sass-loader'),
-          },
-          // Adds support for CSS Modules, but using SASS
-          // using the extension .module.scss or .module.sass
-          {
-            test: sassModuleRegex,
-            use: getStyleLoaders(
-              {
-                importLoaders: 2,
-                modules: true,
-                getLocalIdent: getCSSModuleLocalIdent,
-              },
-              'sass-loader'
-            ),
-          },
-          // "file" loader makes sure those assets get served by WebpackDevServer.
-          // When you `import` an asset, you get its (virtual) filename.
-          // In production, they would get copied to the `build` folder.
-          // This loader doesn't use a "test" so it will catch all modules
-          // that fall through the other loaders.
+
           {
             // Exclude `js` files to keep "css" loader working as it injects
             // its runtime that would otherwise be processed through "file" loader.
@@ -399,7 +317,11 @@ module.exports = {
       fileName: 'asset-manifest.json',
       publicPath: publicPath,
     }),
-  ],
+  ].concat(
+    process.env.ANALYZE_BUNDLE
+      ? new BundleAnalyzerPlugin({ analyzerMode: 'static' })
+      : []
+  ),
 
   // Some libraries import Node modules but don't use them in the browser.
   // Tell Webpack to provide empty mocks for them so importing them works.

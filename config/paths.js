@@ -6,7 +6,6 @@
  * LICENSE file in the root directory of this source tree.
  */
 // @remove-on-eject-end
-'use strict';
 
 const path = require('path');
 const fs = require('fs');
@@ -81,6 +80,7 @@ module.exports = {
   testsSetup: resolveApp('src/setupTests.js'),
   proxySetup: resolveApp('src/setupProxy.js'),
   appNodeModules: resolveApp('node_modules'),
+  babelrc: resolveApp('.babelrc.js'),
   publicUrl: getPublicUrl(resolveApp('package.json')),
   servedPath: getServedPath(resolveApp('package.json')),
   // These properties only exist before ejecting:
