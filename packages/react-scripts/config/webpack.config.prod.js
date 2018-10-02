@@ -9,6 +9,7 @@
 
 const path = require('path');
 const webpack = require('webpack');
+const PnpWebpackPlugin = require('pnp-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const InlineChunkHtmlPlugin = require('react-dev-utils/InlineChunkHtmlPlugin');
 const TerserPlugin = require('terser-webpack-plugin');
@@ -17,10 +18,12 @@ const ManifestPlugin = require('webpack-manifest-plugin');
 const InterpolateHtmlPlugin = require('react-dev-utils/InterpolateHtmlPlugin');
 const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
 const getCacheIdentifier = require('react-dev-utils/getCacheIdentifier');
-const paths = require('./paths');
-const getClientEnvironment = require('./env');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
   .BundleAnalyzerPlugin;
+const getCacheIdentifier = require('react-dev-utils/getCacheIdentifier');
+const ModuleNotFoundPlugin = require('react-dev-utils/ModuleNotFoundPlugin');
+const getClientEnvironment = require('./env');
+const paths = require('./paths');
 
 // Webpack uses `publicPath` to determine where the app is being served from.
 // It requires a trailing slash, or the file assets will get an incorrect path.
@@ -166,12 +169,22 @@ module.exports = {
       'react-native': 'react-native-web',
     },
     plugins: [
+      // Adds support for installing with Plug'n'Play, leading to faster installs and adding
+      // guards against forgotten dependencies and such.
+      PnpWebpackPlugin,
       // Prevents users from importing files from outside of src/ (or node_modules/).
       // This often causes confusion because we only process files within src/ with babel.
       // To fix this, we prevent you from importing files out of src/ -- if you'd like to,
       // please link the files into your node_modules/ and let module-resolution kick in.
       // Make sure your source files are compiled, as they will not be processed in any way.
       new ModuleScopePlugin(paths.appSrc, [paths.appPackageJson]),
+    ],
+  },
+  resolveLoader: {
+    plugins: [
+      // Also related to Plug'n'Play, but this time it tells Webpack to load its loaders
+      // from the current package.
+      PnpWebpackPlugin.moduleLoader(module),
     ],
   },
   module: {
@@ -304,6 +317,11 @@ module.exports = {
               importLoaders: 1,
               sourceMap: shouldUseSourceMap,
             }),
+            // Don't consider CSS imports dead code even if the
+            // containing package claims to have no side effects.
+            // Remove this when webpack adds a warning or an error for this.
+            // See https://github.com/webpack/webpack/issues/6571
+            sideEffects: true,
           },
           {
             loader: require.resolve('file-loader'),
@@ -349,6 +367,9 @@ module.exports = {
     // In production, it will be an empty string unless you specify "homepage"
     // in `package.json`, in which case it will be the pathname of that URL.
     new InterpolateHtmlPlugin(HtmlWebpackPlugin, env.raw),
+    // This gives some necessary context to module not found errors, such as
+    // the requesting resource.
+    new ModuleNotFoundPlugin(paths.appPath),
     // Makes some environment variables available to the JS code, for example:
     // if (process.env.NODE_ENV === 'production') { ... }. See `./env.js`.
     // It is absolutely essential that NODE_ENV was set to production here.
