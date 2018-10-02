@@ -10,7 +10,6 @@ const babelJest = require('babel-jest');
 const paths = require('../paths');
 
 module.exports = babelJest.createTransformer({
-  presets: [require.resolve('babel-preset-react-app')],
   ...require(paths.babelrc),
   babelrc: false,
   configFile: false,
