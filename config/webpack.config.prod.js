@@ -20,7 +20,6 @@ const ModuleScopePlugin = require('react-dev-utils/ModuleScopePlugin');
 const getCacheIdentifier = require('react-dev-utils/getCacheIdentifier');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer')
   .BundleAnalyzerPlugin;
-const getCacheIdentifier = require('react-dev-utils/getCacheIdentifier');
 const ModuleNotFoundPlugin = require('react-dev-utils/ModuleNotFoundPlugin');
 const getClientEnvironment = require('./env');
 const paths = require('./paths');
