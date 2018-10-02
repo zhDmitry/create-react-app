@@ -5,7 +5,6 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-'use strict';
 
 const fs = require('fs');
 const chalk = require('chalk');
@@ -25,17 +24,19 @@ module.exports = (resolve, rootDir, isEjecting) => {
     setupFiles: ['react-app-polyfill/jsdom'],
     setupTestFrameworkScriptFile: setupTestsFile,
     testMatch: [
-      '<rootDir>/src/**/__tests__/**/*.{js,jsx,ts,tsx}',
+      '<rootDir>/src/**/__tests__/**/*.{js,jsx}',
       '<rootDir>/src/**/?(*.)(spec|test).{js,jsx,ts,tsx}',
     ],
     testEnvironment: 'jsdom',
     testURL: 'http://localhost',
     transform: {
-      '^.+\\.(js|jsx)$': isEjecting
+      '^.+\\.(js|jsx|ts|tsx)$': isEjecting
         ? '<rootDir>/node_modules/babel-jest'
         : resolve('config/jest/babelTransform.js'),
       '^.+\\.css$': resolve('config/jest/cssTransform.js'),
-      '^(?!.*\\.(js|jsx|css|json)$)': resolve('config/jest/fileTransform.js'),
+      '^(?!.*\\.(js|jsx|ts|tsx|css|json)$)': resolve(
+        'config/jest/fileTransform.js'
+      ),
     },
     transformIgnorePatterns: [
       '[/\\\\]node_modules[/\\\\].+\\.(js|jsx)$',
@@ -48,12 +49,12 @@ module.exports = (resolve, rootDir, isEjecting) => {
     moduleFileExtensions: [
       'web.js',
       'js',
+      'ts',
+      'tsx',
       'json',
       'web.jsx',
       'jsx',
       'node',
-      'ts',
-      'tsx',
     ],
   };
   if (rootDir) {
