@@ -109,6 +109,7 @@ module.exports = {
   yarnLockFile: resolveApp('yarn.lock'),
   babelrc: resolveApp('.babelrc.js'),
   eslintrc: resolveApp('.eslintrc.js'),
+  rewire: resolveApp('config-overrides.js'),
   testsSetup: resolveModule(resolveApp, 'src/setupTests'),
   proxySetup: resolveApp('src/setupProxy.js'),
   appNodeModules: resolveApp('node_modules'),
@@ -147,7 +148,7 @@ if (
     proxySetup: resolveOwn('template/src/setupProxy.js'),
     babelrc: resolveApp('.babelrc.js'),
     eslintrc: resolveApp('.eslintrc.js'),
-
+    rewire: resolveApp('config-overrides.js'),
     appNodeModules: resolveOwn('node_modules'),
     publicUrl: getPublicUrl(resolveOwn('package.json')),
     servedPath: getServedPath(resolveOwn('package.json')),
