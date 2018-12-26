@@ -38,6 +38,9 @@ function verifyNoTypeScript() {
 }
 
 function verifyTypeScriptSetup() {
+  if(process.env.SKIP_TYPESCRIPT_VERIFY) {
+    return;
+  }
   let firstTimeSetup = false;
 
   if (!fs.existsSync(paths.appTsConfig)) {
